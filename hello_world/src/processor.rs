@@ -1,0 +1,45 @@
+// src/processor.rs
+use crate::types::SpaceEvent;
+
+// 函数A：计算安全剩余载荷
+// 需求：
+// - 输入：总载荷total和已用载荷used
+// - 逻辑内声明一个局部块表达式{},在块内部计算total-used
+// 块表达式和整个函数的最后一行，不准写return，不准加分号
+pub fn calculate_remaing(total: f64, used: f64) -> f64 {
+    { total - used }
+}
+
+// 函数B： 事件黑盒处理器
+// 解构高级枚举，所有权彻底转移
+/// 需求：
+///   - 输入一个事件 `event`（所有权转移进此函数）
+///   - 使用 `match` 匹配 `SpaceEvent`：
+///     - 如果是 `BlackHole(intensity)` -> 打印引力
+///     - 如果是 `ShipArrival(mut ship)` -> 
+///       将飞船的 `fuel` 修改为 100，并打印飞船信息。
+///   - 🔥【思考并验证】：此函数结束后，传入的 `event` 和里面的 `ship` 会发生什么？
+pub fn process_event(event: SpaceEvent) {
+    match event {
+        SpaceEvent::BlackHole(intensity) => {
+            println!("Black hole intensity: {}", intensity);
+        }
+        SpaceEvent::ShipArrival(mut ship) => {
+            ship.fuel = 100u32;
+            println!("Ship arrived with fuel: {}", ship.fuel);
+        }
+        SpaceEvent::CargoDump { rate, code } => {
+            println!("Cargo dumped with rate: {}, code: {}", rate, code);
+        }
+    }
+}
+
+/// 函数 C：星际序列号解析器
+/// 训练点：字符串切片 `&str` 的只读视图与临时生命周期
+/// 需求：
+///   - 接收一个只读的字符串切片 `serial: &str`（形如 "BATCH-4092-X"）
+///   - 返回该序列号的中间四位数字部分（同样作为只读切片 `&str` 返回）
+///   - 提示：使用 `&serial[6..10]` 类似的行为
+pub fn extract_batch_code(serial: &str) -> &str {
+    &serial[6..10]
+}
