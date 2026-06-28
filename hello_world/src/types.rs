@@ -26,3 +26,4 @@ pub enum SpaceEvent {
     // 变体C: 货物倾销，携带一个命名空间结构
     CargoDump { rate: f32, code: char },
 }
+
