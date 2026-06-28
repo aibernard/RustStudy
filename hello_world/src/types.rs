@@ -9,7 +9,10 @@ pub struct CargoBundle(pub u32, pub f64);
 pub struct Spaceship {
     pub name: String,
     pub fuel: u32,
-    pub is_active: bool,
+    // 固定大小数组，代表[前、后、左、右]四个象限的物理护盾值
+    pub shield_sectors: [f32; 4],
+    // 单字符，代表反应堆核心状态，如 'A' 正常，'W' 警告，'D' 严重；
+    pub core_status: char,
 }
 
 // 星际事件：高级代数数据类型（Enum ADT）

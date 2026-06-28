@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::processor::calculate_remaing;
+use crate::processor::calculate_remaining;
 
 mod types;
 mod processor;
@@ -9,7 +9,7 @@ mod processor;
 fn main() {
    println!("=== 星际货运物流终端启动 ===");
 
-   let rem = calculate_remaing(500.0, 125.6);
+   let rem = calculate_remaining(500.0, 125.6);
    println!("剩余载荷: {}", rem);
 
    let mut input_name = String::new();
@@ -19,8 +19,9 @@ fn main() {
 
    let my_ship = types::Spaceship {
        name: cleaned_name,
-       fuel: 20,
-       is_active: true,
+       fuel: 40,
+       shield_sectors: [100.0, 100.0, 100.0, 100.0],
+       core_status: 'A',
    };
 
    let arrival_event = types::SpaceEvent::ShipArrival(my_ship);
@@ -28,5 +29,5 @@ fn main() {
 
    let full_serial = "BATCH-4092-X";
    let batch = processor::extract_batch_code(full_serial);
-   println!("提取的批次代码: {}", batch);
+   println!("提取的批次代码: {}", batch.unwrap_or("无效序列号"));
 }
