@@ -4,7 +4,8 @@ use crate::processor::calculate_remaining;
 
 mod types;
 mod processor;
-mod EnumList;
+mod enum_list;
+mod operators;// 挂在在模块树上，供main.rs使用
 
 fn main() {
    println!("=== 星际货运物流终端启动 ===");
