@@ -143,6 +143,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::mem::size_of;
     // 实验一：断言范围的”自消耗"与包含特性
     #[test]
     fn test_range_containment_and_iterator() {
@@ -211,4 +212,82 @@ mod tests {
         let res5 = mock_cargo_slice(&shields, ..);
         assert_eq!(res5, vec![10.0, 20.0, 30.0, 40.0]);
     }
+
+    // 肉搏胖指针尺寸与隐式强制转换
+    #[test]
+    // coercion: 强迫、制止
+    fn test_slice_fat_pointer_and_coercion() {
+        // 物理尺寸断言，证明原始指针是8字节，而切片引用（胖指针）是16字节
+        assert_eq!(size_of::<*const f32>(), 8);
+        assert_eq!(size_of::<&[f32]>(), 16);
+        assert_eq!(size_of::<&str>(), 16);
+
+        // 解析胖指针的数据流向
+        let array: [i32; 5] = [10, 20, 30, 40, 50];
+        let slice: &[i32] = &array[1..4];// 截取20，30，40
+        assert_eq!(slice.len(), 3);
+        assert_eq!(slice[0], 20);
+
+        // 高级特性：Deref 隐式强制转换
+        // 在实际开发中，我们不需要到处写 Range。Vec 和 String 会自动退化为切片
+        let vector_cargo: Vec<i32> = vec![1, 2, 3];
+        let string_name: String = String::from("APOLLO");
+
+        // 核心函数签名要求的是 &[i32] 和 &str
+        fn read_dependencies(data: &[i32], name: &str) -> usize {
+            data.len() + name.len()
+        }
+        // &Vec 自动转为 &[T]，&String 自动转为 &str
+        // 这在底层是通过实现 std::ops::Deref 特质完成的，全程零拷贝、零运行时开销！
+        let total_len = read_dependencies(&vector_cargo, &string_name);
+        assert_eq!(total_len, 9);
+    }
+
+    // 高级滑动窗口（Windows）与数据分块（Chunks）的零拷贝解析
+    #[test]
+    fn test_slice_windows_and_chunks() {
+        let telemetry_signals = [10.0, 12.5, 95.0, 88.0, 14.2];
+
+        // 1. .windows(N) —— 连续重叠的滑动窗口（非常适合做游戏碰撞检测、AI 路径平滑、信号平滑）
+        // 窗口大小为 2：生成 [10.0, 12.5], [12.5, 95.0], [95.0, 88.0] ...
+        let mut window_iter = telemetry_signals.windows(2);
+        let first_window = window_iter.next().unwrap();
+
+        assert_eq!(first_window, &[10.0, 12.5]); // 提取出第一个窗口切片
+        let second_window = window_iter.next().unwrap();
+        assert_eq!(second_window, &[12.5, 95.0]);
+
+        // 2. .chunks(N) —— 互不重叠的等长分块（极其适合多线程任务分发、批量渲染打包）
+        // 块大小为 2：生成 [10.0, 12.5], [95.0, 88.0], [14.2]（最后一块不够就剩下多少给多少）
+        let mut chunk_iter = telemetry_signals.chunks(2);
+        assert_eq!(chunk_iter.next().unwrap(), &[10.0, 12.5]);
+        assert_eq!(chunk_iter.next().unwrap(), &[95.0, 88.0]);
+        assert_eq!(chunk_iter.next().unwrap(), &[14.2]); // 孤立的最后一块
+        // 💡 架构师点评：上述所有的 windows 和 chunks 操作，在内存底层**没有发生过任何哪怕 1 字节的数据克隆**！
+        // 它们仅仅是在栈上不停地生成新的 16 字节胖指针，指向原数组的不同区域，效率拉满！
+    }
+
+    // 传奇特技——可变切片的物理隔离安全拆分 (`split_at_mut`)
+    #[test]
+    fn test_mutable_slice_splitting() {
+        let mut spaceship_bays = [100, 200, 300, 400]; // 四个货舱的物资量
+        // 🚨 思考我们在所有权章节学的借用铁律：你不能同时借用两个可变引用指向同一个数组！
+        // 如果你尝试直接写：
+        // let bay0 = &mut spaceship_bays[0];
+        // let bay1 = &mut spaceship_bays[1]; // 💥 编译器会直接无情击杀！报错：cannot borrow `spaceship_bays` as mutable more than once(second mutable borrow occurs here)
+        // 为什么？因为编译器肉眼凡胎，它只知道你两次借用了同一个数组 `spaceship_bays` 的位置，
+        // 它害怕这两个可变指针在运行时发生重叠（Aliasing），从而引发未定义行为。
+        // println!("bay0 {}, bay1 {}", bay0, bay1);
+        
+        // 利用标准库的底层安全特技 `.split_at_mut(index)`
+        // 它能把一个大的可变切片，在编译期物理切断成两个**类型完全独立、没有任何内存交集**的胖指针！
+        let slice_mut: &mut [i32] = &mut spaceship_bays;
+        let (left_zone, right_zone) = slice_mut.split_at_mut(2);
+        // left_zone  控制原数组前 2 个元素：[100, 200] 的切片视图
+        // right_zone 控制原数组后 2 个元素：[300, 400] 的切片视图
+        left_zone[0] += 50;  // 修改货舱 0
+        right_zone[0] += 50; // 修改货舱 2（即 right_zone 的第 0 个偏移）
+    }
+
+    
 }

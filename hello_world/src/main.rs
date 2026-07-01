@@ -4,7 +4,7 @@ use crate::processor::calculate_remaining;
 
 mod types;
 mod processor;
-
+mod EnumList;
 
 fn main() {
    println!("=== 星际货运物流终端启动 ===");
